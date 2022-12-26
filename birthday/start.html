@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset=utf-8>
+    <title>生日礼盒</title>
+    <style>
+        body {
+            margin: 0;
+        }
+
+        canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        a {
+            width: auto;
+            text-align: center;
+            text-decoration: none;
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: larger;
+            border-left: 6px solid red;
+            background-color: lightgrey;
+            /* padding-left: 40%; */
+            font-style: oblique;
+        }
+    </style>
+</head>
+
+<body onload="init()">
+    <a href="index.html" name="hhh">小玲同学，快点击我拆开你的礼物吧！</a>
+    <!-- <script src="/js/interaction.js"></script>
+    <script src="https://cdn.bootcss.com/three.js/92/three.js"></script>
+    <script src="/js/OrbitControls.js"></script> -->
+    <script src="js/jquery-3.6.0.min.js"></script>
+    <!-- <script src=""></script> -->
+    <script src="js/three.js"></script>
+    <script src="js/OrbitControls.js"></script>
+    <script src="js/stats.min.js"></script>
+    <script src="js/dat.gui.min.js"></script>
+
+    <script>
+        //声明一些全局变量
+        let renderer, camera, scene, geometry, material, mesh, material2, mesh2, geometry2;
+
+        //初始化渲染器
+        function initRenderer() {
+            renderer = new THREE.WebGLRenderer(); //实例化渲染器
+            renderer.setSize(window.innerWidth, window.innerHeight); //设置宽和高
+            document.body.appendChild(renderer.domElement); //添加到dom
+        }
+
+        let ambientLight, directionalLight;// 全局光和平行光
+        function initLight() {
+            // let Light = new THREE.DirectionalLight("#111111"); //添加了一个白色的平行光
+            // scene.add(Light); //添加到场景
+            // Light.position.set(20, 50, 50); //设置光的方向
+            //阴影
+            directionalLight = new THREE.PointLight(0xffffff);
+            directionalLight.position.set(25, 25, 25);
+            directionalLight.shadow.camera.near = 20; //产生阴影的最近距离
+            directionalLight.shadow.camera.far = 100; //产生阴影的最远距离
+            directionalLight.shadow.camera.left = -50; //产生阴影距离位置的最左边位置
+            directionalLight.shadow.camera.right = 50; //最右边
+            directionalLight.shadow.camera.top = 50; //最上边
+            directionalLight.shadow.camera.bottom = -50; //最下面
+
+            //这两个值决定生成阴影密度 默认512
+            directionalLight.shadow.mapSize.height = 1024;
+            directionalLight.shadow.mapSize.width = 1024;
+
+            directionalLight.castShadow = true;
+            scene.add(directionalLight);
+            //添加一个全局环境光
+            scene.add(new THREE.AmbientLight(0x404040));
+        }
+
+        function initPoint() {
+            let starsGeometry = new THREE.SphereGeometry(100, 50, 100);
+            //生成一万个点的位置
+            for (let i = 0; i < 10000; i++) {
+                // let star = new THREE.Vector3();
+                //THREE.Math.randFloatSpread 在区间内随机浮动* - 范围 / 2 *到* 范围 / 2 *内随机取值。
+                star = THREE.Math.randFloatSpread(2000);
+                // star.y = THREE.Math.randFloatSpread(2000);
+                // star.z = THREE.Math.randFloatSpread(2000);
+                // starsGeometry.vertices.push(star);
+            }
+            let starsMaterial = new THREE.PointsMaterial({ color: 0x888888 });
+            let starField = new THREE.Points(starsGeometry, starsMaterial);
+            scene.add(starField);
+        }
+        //初始化场景
+        function initScene() {
+            scene = new THREE.Scene(); //实例化场景
+            scene.background = new THREE.TextureLoader().load("/img/back.jpeg")
+        }
+
+        //初始化相机
+        function initCamera() {
+            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 200); //实例化相机
+            camera.position.set(0, 0, 15);
+        }
+        //创建模型
+        function initMesh() {
+            // 第一个几何体
+            geometry = new THREE.BoxGeometry(2, 1.5, 2); //创建几何体
+            material = new THREE.MeshNormalMaterial({ color: "#D32432", side: "THREE.DoubleSide" }); //创建材质
+            mesh = new THREE.Mesh(geometry, material); //创建网格
+            // material.map = new THREE.TextureLoader().load("/img/lihe1.png")
+
+            // 第二个几何体
+            geometry2 = new THREE.BoxGeometry(2.2, 0.2, 2.2)
+            material2 = new THREE.MeshNormalMaterial({ color: "#2F3E4E" }); //创建材质
+            mesh2 = new THREE.Mesh(geometry2, material2)
+            mesh2.position.set(0, 0.75, 0);
+            // material2.map = new THREE.TextureLoader().load("/img/lihe1.png")
+
+            scene.add(mesh); //将网格添加到场景
+            scene.add(mesh2)
+        }
+
+        //运行动画
+        function animate() {
+            requestAnimationFrame(animate); //循环调用函数
+            control.update();
+
+            mesh.rotation.y += 0.02; //每帧网格模型的沿y轴旋转0.02弧度
+            mesh2.rotation.y += 0.02; //每帧网格模型的沿y轴旋转0.02弧度
+            renderer.render(scene, camera); //渲染界面
+        }
+
+        // 控制器
+        let control
+        function initControl() {
+            // 通过相机和渲染器的dom对象实例化相机
+            control = new THREE.OrbitControls(camera, renderer.domElement);
+
+            // 是否开启当前的控制器 默认值为true
+            control.enabled = true;
+
+            // 设置当前控制器的焦点 默认为原点位置
+            control.target = new THREE.Vector3();
+
+            // 控制器控制相机可移动的距离焦点的最远距离和最近距离 默认值是0到无限远的距离 此属性适用于透视相机 PerspectiveCamera
+            control.minDistance = 0;
+            control.maxDistance = Infinity;
+
+            // 控制器控制相机可移动的距离焦点的最远距离和最近距离 默认值是0到无限远的距离 此属性适用于正交相机 OrthographicCamera
+            control.minZoom = 0;
+            control.maxZoom = Infinity;
+
+            // 相机垂直方向移动的弧度，默认从顶部九十度到底部九十度 默认值是0和Math.PI
+            control.minPolarAngle = 0; // 弧度
+            control.maxPolarAngle = Math.PI; // 弧度
+
+            // 当前相机水平位置下在焦点的z轴正方向可以偏转的弧度，默认无限旋转。
+            // 如果不可以无限旋转，只能够从左方和右方旋转180度，可以设置成minAzimuthAngle = - Math.PI maxAzimuthAngle = Math.PI
+            control.minAzimuthAngle = - Infinity; // 弧度
+            control.maxAzimuthAngle = Infinity; // 弧度
+
+            // 是否开启拖拽后的惯性（停止拖拽后，相机会慢慢停下来），如果开启了当前的属性，还需要在动画循环中调用相机的update()更新位置
+            control.enableDamping = false;
+            control.dampingFactor = 0.25; //设置当前的惯性的阻力，值越小阻力越小
+
+            // 设置控制器是否缩放以及缩放速度
+            control.enableZoom = true;
+            control.zoomSpeed = 4;
+
+            // 设置控制器是否可以旋转以及旋转速度
+            control.enableRotate = true;
+            control.rotateSpeed = 1.0;
+
+            // 是否开启改变视角焦点中心以及移动视角中心的速度
+            control.enablePan = true;
+            control.panSpeed = 1.0;
+            control.screenSpacePanning = false; // 移动相机位置焦点默认是修改x轴和z轴方向，如果将此值修改为true，焦点位置将修改x轴和y轴方向
+            control.keyPanSpeed = 7.0;	// 修改焦点位置移动的速度
+
+            // 设置当前是否自动旋转
+            control.autoRotate = false;
+            control.autoRotateSpeed = 2.0; // 默认速度为30秒旋转一周的速度，一秒60帧的情况下
+
+            // 是否开启键盘控制
+            control.enableKeys = true;
+
+            // 控制焦点的位置偏移的键盘按键 默认是上下左右键的 keyCode
+            control.keys = { LEFT: 37, UP: 38, RIGHT: 39, BOTTOM: 40 };
+
+            // 控制相机控制器的鼠标按键设置 默认左键旋转，中键缩放，右键移动焦点位置
+            control.mouseButtons = { ORBIT: THREE.MOUSE.LEFT, ZOOM: THREE.MOUSE.MIDDLE, PAN: THREE.MOUSE.RIGHT };
+
+            //监听相机改变回调，如果控制器修改了相机，将会产生一个回调
+            control.addEventListener('change', function () {
+                console.log("相机动了！");
+            });
+
+        }
+        //声明raycaster和mouse变量
+        let raycaster = new THREE.Raycaster();
+        let mouse = new THREE.Vector2();
+
+        function onMouseClick(event) {
+
+            //通过鼠标点击的位置计算出raycaster所需要的点的位置，以屏幕中心为原点，值的范围为-1到1.
+
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = - (event.clientY / window.innerHeight) * 2 + 1;
+
+            // 通过鼠标点的位置和当前相机的矩阵计算出raycaster
+            raycaster.setFromCamera(mouse, camera);
+
+            // 获取raycaster直线和所有模型相交的数组集合
+            var intersects = raycaster.intersectObjects(scene.children);
+
+            console.log(intersects);
+
+            //将所有的相交的模型的颜色设置为红色，如果只需要将第一个触发事件，那就数组的第一个模型改变颜色即可
+            for (var i = 0; i < intersects.length; i++) {
+
+                // intersects[i].object.material.color.set(0xff0000);
+                let beg = $('intersects[i]');
+                beg.click(function () {
+
+                    $('intersects[i]').html('<a href="Memories.html" style="text-decoration: none;color: #fff;background: pink;display: inline-block;padding: 10px;border: 2px solid #fff;">开启时光机</a>');
+                });
+            }
+
+        }
+
+        window.addEventListener('dblclick', onMouseClick, false);
+
+
+
+        //初始化函数，页面加载完成是调用
+        function init() {
+            initRenderer();
+            initScene();
+            initCamera();
+            initLight()
+            initMesh();
+            // initPoint();
+            initControl();
+            animate();
+        }
+    </script>
+    <a href="Memories.html">
+
+        <script>
+            scene
+        </script>
+    </a>
+</body>
+<!-- <script src="/img/lihe1.png"></script> -->
+
+</html>
